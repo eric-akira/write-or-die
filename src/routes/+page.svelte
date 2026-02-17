@@ -1,12 +1,32 @@
 <script>
+	import { persisted } from "$lib/persisted.svelte";
+	import SetTimerButton from "$lib/components/SetTimerButton.svelte";
+	import { preventDefault } from "svelte/legacy";
+
+	const timeInvestedInWritingSoFar = persisted('timeInvestedInWritingSoFar', 0);
+
+	let mainTimerStartTime = $state(300);
+
+	function setMainTimerStartTime(valueToSetInSeconds) {
+		mainTimerStartTime = valueToSetInSeconds;
+	}
+
 	let text = $state('');
 	let phase = $state('idle');
-	let mainTimer = $state(30);
+	let mainTimer = $state(300);
 	let dangerTimer = $state(10);
+
+	$effect(() => {
+		if (phase === 'idle') {
+			mainTimer = mainTimerStartTime;
+		}
+	});
 
 	let mainIntervalId = null;
 	let dangerIntervalId = null;
 	let idleTimeoutId = null;
+
+	let textOpacity = $derived(phase === 'danger' ? dangerTimer / 10 : 1);
 
 	function clearAllTimers() {
 		clearInterval(mainIntervalId);
@@ -23,7 +43,7 @@
 			text = '';
 		}
 		
-		mainTimer = 30;
+		mainTimer = mainTimerStartTime;
 		dangerTimer = 10;
 		phase = 'idle';
 	}
@@ -55,7 +75,7 @@
 			mainIntervalId = null;
 			phase = 'danger';
 			startDangerInterval();
-		}, 5000);
+		}, 2000);
 	}
 
 	function handleInput() {
@@ -76,7 +96,10 @@
 	}
 
 	function download() {
-		const blob = new Blob([text], { type: 'text/plain' });
+		timeInvestedInWritingSoFar.value += mainTimerStartTime;
+
+		const content = `Time Invested In Writing So Far: ${timeInvestedInWritingSoFar.value} seconds\n\nText written:\n\n${text}`;
+		const blob = new Blob([content], { type: 'text/plain' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
@@ -91,20 +114,95 @@
 			clearAllTimers();
 		};
 	});
+
+	$effect(() => {
+		if (phase !== 'writing' && phase !== 'danger') return;
+
+		function handleFocusLoss() {
+			resetToIdle(true);
+		}
+
+		function handleVisibilityChange() {
+			if (document.hidden) {
+				handleFocusLoss();
+			}
+		}
+
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		window.addEventListener('blur', handleFocusLoss);
+
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			window.removeEventListener('blur', handleFocusLoss);
+		};
+	});
 </script>
 
-<textarea bind:value={text} oninput={handleInput} disabled={phase === 'done'}></textarea>
+<div class="container">
+	<textarea 
+		bind:value={text} 
+		oninput={handleInput} 
+		disabled={phase === 'done'}
+		onpaste={(e) => {
+			e.preventDefault();
+		}}
+		oncopy={(e) => {
+			e.preventDefault();
+			e.clipboardData.setData('text/plain', "Don't cheat! No copying/pasting");
+		}}
+		oncontextmenu={(e) => {
+			e.preventDefault();
+		}}
+		style="opacity: {textOpacity}"
+	></textarea>
 
-{#if phase === 'writing'}
-	<p>Time remaining: {mainTimer}s</p>
-{/if}
+	<p>
+		Time invested so far: {timeInvestedInWritingSoFar.value} seconds.
+	</p>
 
-{#if phase === 'danger'}
-	<p>Time remaining: {mainTimer}s (paused)</p>
-	<p>Keep typing! Content will be cleared in: {dangerTimer}s</p>
-{/if}
+	{#if phase === 'idle'}
+		<p>{mainTimerStartTime} seconds.</p>
+		
+		<SetTimerButton timerInSeconds={60} timerInMinutes="1m" onClickFunction={setMainTimerStartTime} />
+		<SetTimerButton timerInSeconds={120} timerInMinutes="2m" onClickFunction={setMainTimerStartTime} />
+		<SetTimerButton timerInSeconds={180} timerInMinutes="3m" onClickFunction={setMainTimerStartTime} />
+		<SetTimerButton timerInSeconds={300} timerInMinutes="5m" onClickFunction={setMainTimerStartTime} />
+		<SetTimerButton timerInSeconds={480} timerInMinutes="8m" onClickFunction={setMainTimerStartTime} />
+		<SetTimerButton timerInSeconds={780} timerInMinutes="13m" onClickFunction={setMainTimerStartTime} />
+	{/if}
 
-{#if phase === 'done'}
-	<p>Time is up!</p>
-	<button onclick={download}>Download your text</button>
-{/if}
+	{#if phase === 'writing'}
+		<p>Time remaining: {mainTimer}s</p>
+	{/if}
+
+	{#if phase === 'danger'}
+		<p>Time remaining: {mainTimer}s (paused)</p>
+		<p>Keep typing! Content will be cleared in: {dangerTimer}s</p>
+	{/if}
+
+	{#if phase === 'done'}
+		<p>Time is up!</p>
+		<button onclick={download}>Download your text</button>
+	{/if}
+</div>
+
+<style>
+	.container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		max-width: 800px;
+		margin: 0 auto;
+		padding: 2rem;
+	}
+
+	textarea {
+		width: 100%;
+		min-height: 60vh;
+		padding: 1rem;
+		font-size: 1.1rem;
+		line-height: 1.6;
+		resize: vertical;
+		box-sizing: border-box;
+	}
+</style>
