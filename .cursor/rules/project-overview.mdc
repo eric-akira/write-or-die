@@ -1,0 +1,44 @@
+---
+description: write-or-die project architecture and deployment knowledge
+alwaysApply: true
+---
+
+# write-or-die — Project Knowledge
+
+A SvelteKit 5 (Svelte runes) "write or die" forced-writing app. Keep typing or your text fades and gets wiped.
+
+## Stack
+
+- SvelteKit 2 + Svelte 5 (runes: `$state`, `$derived`, `$effect`, `$props`)
+- Vite 7, Vitest (browser + node projects), Playwright e2e, ESLint + Prettier
+- Deploy adapter: `@sveltejs/adapter-cloudflare` (build output: `.svelte-kit/cloudflare`)
+- Node v24.x, npm. Indentation: tabs.
+
+## Key files
+
+- `src/routes/+page.svelte` — entire app. FSM with `phase`: `idle → writing → danger → done`.
+  - `writing`: main countdown; each keystroke resets a 2s idle watchdog.
+  - `danger`: paused main timer, text fades (`textOpacity = dangerTimer / 10`), wiped after 10s.
+  - `done`: download text as `write-or-die.txt`.
+  - Anti-cheat: blocks paste/copy/right-click; tab-switch or window blur while writing wipes text.
+- `src/lib/persisted.svelte.js` — `$state` + `localStorage` wrapper (persists `timeInvestedInWritingSoFar`).
+- `src/lib/components/SetTimerButton.svelte` — timer-preset button.
+
+## Commands
+
+- Dev: `npm run dev` (`-- --open` to open browser)
+- Build / preview: `npm run build` / `npm run preview`
+- Lint / format: `npm run lint` / `npm run format`
+- Tests: `npm run test` (unit then e2e), `npm run test:unit`, `npm run test:e2e`
+
+## Deployment (IMPORTANT)
+
+Deployed via **Cloudflare "Workers & Pages" Git integration** connected to GitHub
+repo `eric-akira/write-or-die`. Cloudflare **builds from source on every push to `main`**
+(build command `npm run build`, output dir `.svelte-kit/cloudflare`).
+
+- To deploy: `git push origin main` (no manual build/upload step).
+- There is **no `wrangler.toml`/`wrangler.jsonc`** in the repo, so local `wrangler deploy`
+  (Workers) is not configured. Do not assume CLI deploy works without adding config.
+
+See `COMMANDS.md` for the full cheat sheet.

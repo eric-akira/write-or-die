@@ -101,9 +101,14 @@
 		const content = `Time Invested In Writing So Far: ${timeInvestedInWritingSoFar.value} seconds\n\nText written:\n\n${text}`;
 		const blob = new Blob([content], { type: 'text/plain' });
 		const url = URL.createObjectURL(blob);
+
+		const now = new Date();
+		const pad = (n) => String(n).padStart(2, '0');
+		const fileName = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}.txt`;
+
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = 'write-or-die.txt';
+		a.download = fileName;
 		a.click();
 		URL.revokeObjectURL(url);
 		resetToIdle(false);
@@ -163,12 +168,13 @@
 	{#if phase === 'idle'}
 		<p>{mainTimerStartTime} seconds.</p>
 		
-		<SetTimerButton timerInSeconds={60} timerInMinutes="1m" onClickFunction={setMainTimerStartTime} />
-		<SetTimerButton timerInSeconds={120} timerInMinutes="2m" onClickFunction={setMainTimerStartTime} />
-		<SetTimerButton timerInSeconds={180} timerInMinutes="3m" onClickFunction={setMainTimerStartTime} />
-		<SetTimerButton timerInSeconds={300} timerInMinutes="5m" onClickFunction={setMainTimerStartTime} />
-		<SetTimerButton timerInSeconds={480} timerInMinutes="8m" onClickFunction={setMainTimerStartTime} />
-		<SetTimerButton timerInSeconds={780} timerInMinutes="13m" onClickFunction={setMainTimerStartTime} />
+		<SetTimerButton timerInSeconds={15} label="15s" onClickFunction={setMainTimerStartTime} />
+		<SetTimerButton timerInSeconds={60} label="1m" onClickFunction={setMainTimerStartTime} />
+		<SetTimerButton timerInSeconds={120} label="2m" onClickFunction={setMainTimerStartTime} />
+		<SetTimerButton timerInSeconds={180} label="3m" onClickFunction={setMainTimerStartTime} />
+		<SetTimerButton timerInSeconds={300} label="5m" onClickFunction={setMainTimerStartTime} />
+		<SetTimerButton timerInSeconds={480} label="8m" onClickFunction={setMainTimerStartTime} />
+		<SetTimerButton timerInSeconds={780} label="13m" onClickFunction={setMainTimerStartTime} />
 	{/if}
 
 	{#if phase === 'writing'}

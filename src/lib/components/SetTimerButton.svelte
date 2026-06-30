@@ -1,9 +1,9 @@
 <script>
-    let { timerInSeconds, timerInMinutes, onClickFunction } = $props();
+    let { timerInSeconds, label, onClickFunction } = $props();
 </script>
 
 <p>
     <button onclick={() => onClickFunction(timerInSeconds)}>
-        {timerInMinutes}
+        {label}
     </button>
 </p>
